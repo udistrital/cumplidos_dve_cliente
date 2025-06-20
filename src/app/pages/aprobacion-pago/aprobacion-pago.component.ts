@@ -130,8 +130,8 @@ export class AprobacionPagoComponent implements OnInit {
   GenerarPeriodos(): void {
     var AnoActual = new Date().getFullYear();
     var AnoProximo = new Date().getFullYear() + 1;
-    this.Periodos[AnoActual] = [AnoActual + "-3", AnoActual + "-1"]
-    this.Periodos[AnoProximo] = [AnoProximo + "-3", AnoProximo + "-1"]
+    this.Periodos[AnoActual] = [AnoActual + "-3", AnoActual + "-2", AnoActual + "-1"]
+    this.Periodos[AnoProximo] = [AnoProximo + "-3", AnoProximo + "-2", AnoProximo + "-1"]
   }
 
   async consultarNumeroDocumento() {
