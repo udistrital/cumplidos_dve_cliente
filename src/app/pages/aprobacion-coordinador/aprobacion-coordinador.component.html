@@ -1,52 +1,156 @@
+
+<mat-card class="card-oas" style="margin-bottom: 20px;">
+  <mat-card-title>
+    <h2>Generar Certificados</h2>
+  </mat-card-title>
+
+  <mat-card-content>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+
+      <mat-form-field appearance="outline">
+        <mat-label>Proyecto Curricular</mat-label>
+        <mat-select [(ngModel)]="ProyectoCurricularSeleccionado" name="pcCert">
+          <mat-option *ngFor="let proyecto of Proyectos_Curriculares"
+                      [value]="proyecto.codigo_snies">
+            {{ proyecto.nombre_proyecto_condor }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Mes</mat-label>
+        <mat-select [(ngModel)]="MesSeleccionado" name="mesCert">
+          <mat-option *ngFor="let mesTxt of Meses" [value]="mesTxt">
+            {{ mesTxt }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Año</mat-label>
+        <mat-select [(ngModel)]="AnoSeleccionado" name="anioCert">
+          <mat-option *ngFor="let ano of Anos" [value]="ano">
+            {{ ano }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Periodo</mat-label>
+        <mat-select [(ngModel)]="PeriodoSeleccionado" name="periodoCert">
+          <mat-option *ngFor="let periodo of Periodos[AnoSeleccionado]"
+                      [value]="periodo">
+            {{ periodo }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-raised-button
+              color="accent"
+              type="button"
+              (click)="GenerarCertificado()">
+        Generar Certificado
+      </button>
+
+    </div>
+  </mat-card-content>
+</mat-card>
+
 <mat-card class="card-oas">
-    <mat-card-title class="cumplidos-dve-title">
-        <h2>Aprobación Coordinador</h2>
-    </mat-card-title>
-    <mat-card-content>
-        <div class="container-name">
-            <mat-form-field>
-                <input matInput placeholder="Nombre del Coordinador" disabled="true" [value]="NombreCoordinador">
-            </mat-form-field>
+  <mat-card-title>
+    <h2>Consulta Docentes</h2>
+  </mat-card-title>
+
+  <mat-card-content>
+
+    <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom: 16px;">
+
+      <mat-form-field appearance="outline">
+        <mat-label>Proyecto Curricular</mat-label>
+        <mat-select [(ngModel)]="proyectoSeleccionado" name="pcDoc">
+          <mat-option *ngFor="let proyecto of Proyectos_Curriculares"
+                      [value]="proyecto.codigo_snies">
+            {{ proyecto.nombre_proyecto_condor }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Vigencia</mat-label>
+        <input matInput type="number" [(ngModel)]="vigencia" name="vigenciaDoc">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Mes</mat-label>
+        <mat-select [(ngModel)]="mes" name="mesDoc">
+          <mat-option *ngFor="let mTxt of Meses; let i=index" [value]="i+1">
+            {{ mTxt }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Año</mat-label>
+        <input matInput type="number" [(ngModel)]="anio" name="anioDoc">
+      </mat-form-field>
+
+      <button mat-raised-button
+              color="primary"
+              type="button"
+              (click)="consultarDocentes()">
+        Consultar
+      </button>
+
+    </div>
+
+    <mat-accordion multi="true">
+
+      <!-- APROBADOS -->
+      <mat-expansion-panel [expanded]="true">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            Docentes Aprobados
+          </mat-panel-title>
+          <mat-panel-description>
+            {{ totalAprobados }} registro(s)
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <ng2-smart-table
+          [settings]="settingsAprobados"
+          [source]="sourceAprobados">
+        </ng2-smart-table>
+      </mat-expansion-panel>
+
+      <!-- POR APROBAR -->
+      <mat-expansion-panel [expanded]="true">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            Docentes Por Aprobar
+          </mat-panel-title>
+          <mat-panel-description>
+            {{ totalPorAprobar }} registro(s) | seleccionados: {{ selectedRows.length }}
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <ng2-smart-table
+          [settings]="settingsPorAprobar"
+          [source]="sourcePorAprobar"
+          (userRowSelect)="onUserRowSelect($event)">
+        </ng2-smart-table>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+          <button mat-raised-button
+                  color="primary"
+                  type="button"
+                  (click)="aprobarSeleccionados()"
+                  [disabled]="selectedRows.length === 0">
+            Aprobar seleccionados
+          </button>
         </div>
-        <form>
-            <mat-form-field class="form-proyecto-curricular" appearance="outline">
-                <mat-label>PROYECTO CURRICULAR</mat-label>
-                <mat-select [(value)]="ProyectoCurricularSeleccionado">
-                    <mat-option [value]="proyecto_curricular.codigo_snies" *ngFor="let proyecto_curricular of Proyectos_Curriculares">{{proyecto_curricular.nombre_proyecto_condor}}</mat-option>
-                </mat-select>
-            </mat-form-field>
-            <div class="form-time">
-                <mat-form-field appearance="outline">
-                    <mat-label>MES</mat-label>
-                    <mat-select [(value)]="MesSeleccionado">
-                        <mat-option [value]="mes" *ngFor="let mes of Meses">{{mes}}</mat-option>
-                    </mat-select>
-                </mat-form-field>
-                <mat-form-field appearance="outline">
-                    <mat-label>AÑO</mat-label>
-                    <mat-select [(value)]="AnoSeleccionado">
-                        <mat-option [value]="ano" *ngFor="let ano of Anos">{{ano}}</mat-option>
-                    </mat-select>
-                </mat-form-field>
-                <mat-form-field appearance="outline">
-                    <mat-label>PERIODO</mat-label>
-                    <mat-select [(value)]="PeriodoSeleccionado">
-                        <mat-option [value]="periodo" *ngFor="let periodo of Periodos[AnoSeleccionado]">{{periodo}}</mat-option>
-                    </mat-select>
-                </mat-form-field>
-            </div>
-            <button mat-raised-button class="send" (click)="GenerarCertificado()">Generar Certificado</button>
-        </form>
-        <div class="table">
-            <mat-card class="card-oas">
-                <mat-card-title class="cumplidos-dve-title">
-                    <h3>Peticiones</h3>
-                </mat-card-title>
-                <mat-card-content>
-                    <ng2-smart-table [settings]="PeticionesSettings" [source]="PeticionesData" (custom)="Acciones($event)" (userRowSelect)="CumplidosSeleccionados($event)"  ></ng2-smart-table>
-                    <button  mat-raised-button class="send" (click)="AprobarMultiplesCumplidos()" [disabled]="DeshabilitarBoton">Aprobar Cumplidos</button>
-                </mat-card-content>
-            </mat-card>
-        </div>
-    </mat-card-content>
+      </mat-expansion-panel>
+
+    </mat-accordion>
+
+  </mat-card-content>
 </mat-card>
