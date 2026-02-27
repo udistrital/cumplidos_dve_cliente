@@ -153,20 +153,23 @@ export class AprobacionCoordinadorComponent implements OnInit {
     });
   }
 
-  consultarDocentes() {
-    if (!this.proyectoSeleccionado || !this.vigencia || !this.mes || !this.anio) {
-      Swal.fire('Error', 'Debe seleccionar todos los filtros', 'warning');
-      return;
-    }
+  async consultarDocentes() {
 
-    this.popUp.loading();
+  if (!this.proyectoSeleccionado || !this.vigencia || !this.mes || !this.anio) {
+    Swal.fire('Error', 'Debe seleccionar todos los filtros', 'warning');
+    return;
+  }
 
-    const endpoint =
-      `informacion_academica/docentes_coordinador/51` +
-      `/${this.vigencia}/${this.mes}/${this.anio}`;//${this.proyectoSeleccionado}
+  this.popUp.loading();
 
-    this.request.get(environment.CUMPLIDOS_DVE_MID_SERVICE, endpoint).subscribe({
-      next: (response: any) => {
+  const endpoint =
+    `informacion_academica/docentes_coordinador` +
+    `/${this.ProyectoCurricularSeleccionado}/${this.vigencia}/${this.mes}/${this.anio}`;
+
+  this.request.get(environment.CUMPLIDOS_DVE_MID_SERVICE, endpoint)
+    .subscribe({
+      next: async (response: any) => {
+
         const dataRaw = response?.Data || [];
         const data = Array.isArray(dataRaw) ? dataRaw : [];
 
@@ -181,52 +184,54 @@ export class AprobacionCoordinadorComponent implements OnInit {
         this.selectedRows = [];
 
         this.popUp.close();
-
-        this.enriquecerNombresDocentesAsync(data);
+        await this.enriquecerNombresDocentesAsync(data);
       },
       error: () => {
         this.popUp.close();
         Swal.fire('Error', 'No se pudo consultar docentes', 'error');
       }
     });
-  }
+}
 
-  private enriquecerNombresDocentesAsync(docentes: any[]) {
-    const docsUnicos = Array.from(new Set(
-      (docentes || []).map(d => String(d.PersonaId)).filter(Boolean)
-    ));
+  private async enriquecerNombresDocentesAsync(docentes: any[]) {
 
-    const pendientes = docsUnicos.filter(doc => !this.nombreCache.has(doc));
+  const docsUnicos = Array.from(new Set(
+    (docentes || []).map(d => String(d.PersonaId)).filter(Boolean)
+  ));
 
-    if (pendientes.length === 0) {
-      this.actualizarTablasConNombres(docentes);
-      return;
+  for (let doc of docsUnicos) {
+
+    if (this.nombreCache.has(doc)) {
+      continue;
     }
 
-    const calls = pendientes.map(doc =>
+    await new Promise<void>((resolve) => {
+
       this.request.get(
         environment.ADMINISTRATIVA_AMAZON_SERVICE,
-        `informacion_proveedor?query=NumDocumento:${doc}`
-      ).pipe(
-        timeout(6000),
-        map((datos: DatosIdentificacion) => ({
-          doc,
-          nombre: datos?.[0]?.NomProveedor || ''
-        })),
-        catchError(() => of({ doc, nombre: '' }))
-      )
-    );
+        `informacion_proveedor?query=NumDocumento:${doc}&limit=0`
+      ).subscribe({
+        next: (response: any) => {
 
-    forkJoin(calls).subscribe({
-      next: (results) => {
-        results.forEach(r => this.nombreCache.set(String(r.doc), r.nombre || ''));
-        this.actualizarTablasConNombres(docentes);
-      },
-      error: () => {
-        this.actualizarTablasConNombres(docentes);
-      }
+          if (response && response.length > 0) {
+            this.nombreCache.set(doc, response[0].NomProveedor);
+          } else {
+            this.nombreCache.set(doc, '');
+          }
+
+          resolve();
+        },
+        error: () => {
+          this.nombreCache.set(doc, '');
+          resolve();
+        }
+      });
+
     });
+
   }
+  this.actualizarTablasConNombres(docentes);
+}
 
   private actualizarTablasConNombres(docentes: any[]) {
     const enriched = (docentes || []).map(d => ({
