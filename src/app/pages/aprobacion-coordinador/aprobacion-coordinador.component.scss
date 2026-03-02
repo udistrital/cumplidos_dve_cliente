@@ -35,3 +35,8 @@
 .table ng2-smart-table{
     text-align: center;
 }
+:host ::ng-deep tr.row-aprobado td.ng2-smart-actions input[type="checkbox"] {
+  pointer-events: none;
+  opacity: 0.3;
+  cursor: not-allowed;
+}
