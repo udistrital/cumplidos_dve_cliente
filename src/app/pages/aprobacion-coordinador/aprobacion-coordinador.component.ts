@@ -40,8 +40,8 @@ export class AprobacionCoordinadorComponent implements OnInit {
   anio: number | null = null;
 
   Meses = [
-    'ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
-    'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'
+    'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+    'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
   ];
   Anos = [new Date().getFullYear()];
   Periodos: any[] = [];
@@ -50,6 +50,8 @@ export class AprobacionCoordinadorComponent implements OnInit {
   MesSeleccionado: any = null;      // string mes
   AnoSeleccionado: any = null;
   PeriodoSeleccionado: any = null;
+  Vigencias: number[] = [];
+  AnosDocentes: number[] = [];
 
   dialogConfig: MatDialogConfig;
 
@@ -58,7 +60,7 @@ export class AprobacionCoordinadorComponent implements OnInit {
   settingsAprobados = {
     actions: false,
     selectMode: 'single',
-    hideSubHeader: true,
+    //hideSubHeader: true,
     columns: {
       NumeroContrato: { title: 'Contrato', type: 'string' },
       NombreDocente: {
@@ -112,6 +114,13 @@ export class AprobacionCoordinadorComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    const currentYear = new Date().getFullYear();
+
+    // Vigencias (ej: últimos 6)
+    this.Vigencias = Array.from({ length: 6 }, (_, i) => currentYear - i);
+
+    // Años docentes (igual)
+    this.AnosDocentes = Array.from({ length: 6 }, (_, i) => currentYear - i);
     await this.consultarNumeroDocumento();
     await this.consultarCoordinador();
   }
@@ -125,7 +134,7 @@ export class AprobacionCoordinadorComponent implements OnInit {
 
   async consultarNumeroDocumento() {
     return new Promise((resolve) => {
-      this.userService.user$.subscribe((data: any)=> {
+      this.userService.user$.subscribe((data: any) => {
         if (data?.userService?.documento) {
           this.documentoCoordinador = data.userService.documento;
           resolve(undefined);
@@ -155,83 +164,83 @@ export class AprobacionCoordinadorComponent implements OnInit {
 
   async consultarDocentes() {
 
-  if (!this.proyectoSeleccionado || !this.vigencia || !this.mes || !this.anio) {
-    Swal.fire('Error', 'Debe seleccionar todos los filtros', 'warning');
-    return;
+    if (!this.proyectoSeleccionado || !this.vigencia || !this.mes || !this.anio) {
+      Swal.fire('Error', 'Debe seleccionar todos los filtros', 'warning');
+      return;
+    }
+
+    this.popUp.loading();
+
+    const endpoint =
+      `informacion_academica/docentes_coordinador` +
+      `/${this.proyectoSeleccionado}/${this.vigencia}/${this.mes}/${this.anio}`;
+
+    this.request.get(environment.CUMPLIDOS_DVE_MID_SERVICE, endpoint)
+      .subscribe({
+        next: async (response: any) => {
+
+          const dataRaw = response?.Data || [];
+          const data = Array.isArray(dataRaw) ? dataRaw : [];
+
+          const aprobados = data.filter(d => d?.PagoMensual === true);
+          const porAprobar = data.filter(d => !d?.PagoMensual);
+
+          this.totalAprobados = aprobados.length;
+          this.totalPorAprobar = porAprobar.length;
+
+          this.sourceAprobados = new LocalDataSource(aprobados);
+          this.sourcePorAprobar = new LocalDataSource(porAprobar);
+          this.selectedRows = [];
+
+          this.popUp.close();
+          await this.enriquecerNombresDocentesAsync(data);
+        },
+        error: () => {
+          this.popUp.close();
+          Swal.fire('Error', 'No se pudo consultar docentes', 'error');
+        }
+      });
   }
-
-  this.popUp.loading();
-
-  const endpoint =
-    `informacion_academica/docentes_coordinador` +
-    `/${this.ProyectoCurricularSeleccionado}/${this.vigencia}/${this.mes}/${this.anio}`;
-
-  this.request.get(environment.CUMPLIDOS_DVE_MID_SERVICE, endpoint)
-    .subscribe({
-      next: async (response: any) => {
-
-        const dataRaw = response?.Data || [];
-        const data = Array.isArray(dataRaw) ? dataRaw : [];
-
-        const aprobados = data.filter(d => d?.PagoMensual === true);
-        const porAprobar = data.filter(d => !d?.PagoMensual);
-
-        this.totalAprobados = aprobados.length;
-        this.totalPorAprobar = porAprobar.length;
-
-        this.sourceAprobados = new LocalDataSource(aprobados);
-        this.sourcePorAprobar = new LocalDataSource(porAprobar);
-        this.selectedRows = [];
-
-        this.popUp.close();
-        await this.enriquecerNombresDocentesAsync(data);
-      },
-      error: () => {
-        this.popUp.close();
-        Swal.fire('Error', 'No se pudo consultar docentes', 'error');
-      }
-    });
-}
 
   private async enriquecerNombresDocentesAsync(docentes: any[]) {
 
-  const docsUnicos = Array.from(new Set(
-    (docentes || []).map(d => String(d.PersonaId)).filter(Boolean)
-  ));
+    const docsUnicos = Array.from(new Set(
+      (docentes || []).map(d => String(d.PersonaId)).filter(Boolean)
+    ));
 
-  for (let doc of docsUnicos) {
+    for (let doc of docsUnicos) {
 
-    if (this.nombreCache.has(doc)) {
-      continue;
-    }
+      if (this.nombreCache.has(doc)) {
+        continue;
+      }
 
-    await new Promise<void>((resolve) => {
+      await new Promise<void>((resolve) => {
 
-      this.request.get(
-        environment.ADMINISTRATIVA_AMAZON_SERVICE,
-        `informacion_proveedor?query=NumDocumento:${doc}&limit=0`
-      ).subscribe({
-        next: (response: any) => {
+        this.request.get(
+          environment.ADMINISTRATIVA_AMAZON_SERVICE,
+          `informacion_proveedor?query=NumDocumento:${doc}&limit=0`
+        ).subscribe({
+          next: (response: any) => {
 
-          if (response && response.length > 0) {
-            this.nombreCache.set(doc, response[0].NomProveedor);
-          } else {
+            if (response && response.length > 0) {
+              this.nombreCache.set(doc, response[0].NomProveedor);
+            } else {
+              this.nombreCache.set(doc, '');
+            }
+
+            resolve();
+          },
+          error: () => {
             this.nombreCache.set(doc, '');
+            resolve();
           }
+        });
 
-          resolve();
-        },
-        error: () => {
-          this.nombreCache.set(doc, '');
-          resolve();
-        }
       });
 
-    });
-
+    }
+    this.actualizarTablasConNombres(docentes);
   }
-  this.actualizarTablasConNombres(docentes);
-}
 
   private actualizarTablasConNombres(docentes: any[]) {
     const enriched = (docentes || []).map(d => ({
