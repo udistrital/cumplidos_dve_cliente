@@ -60,7 +60,6 @@ export class AprobacionCoordinadorComponent implements OnInit {
   settingsAprobados = {
     actions: false,
     selectMode: 'single',
-    //hideSubHeader: true,
     columns: {
       NumeroContrato: { title: 'Contrato', type: 'string' },
       NombreDocente: {
