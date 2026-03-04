@@ -77,7 +77,8 @@
 
       <mat-form-field appearance="outline">
         <mat-label>Vigencia</mat-label>
-        <mat-select [(ngModel)]="vigencia del contrato" name="vigenciaDoc">
+        <!-- ✅ CORREGIDO: sin espacios -->
+        <mat-select [(ngModel)]="vigencia" name="vigenciaDoc">
           <mat-option *ngFor="let v of Vigencias" [value]="v">
             {{ v }}
           </mat-option>
@@ -113,6 +114,7 @@
 
     <mat-accordion multi="true">
 
+      <!-- APROBADOS -->
       <mat-expansion-panel [expanded]="true">
         <mat-expansion-panel-header>
           <mat-panel-title>
@@ -129,6 +131,7 @@
         </ng2-smart-table>
       </mat-expansion-panel>
 
+      <!-- POR APROBAR -->
       <mat-expansion-panel [expanded]="true">
         <mat-expansion-panel-header>
           <mat-panel-title>
