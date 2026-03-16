@@ -100,7 +100,7 @@ steps:
     - push
 
 - name: publish_s3_release
-  image: plugins/s3
+  image: plugins/s3:1.5.8
   settings:
     bucket: cliente-pruebas
     access_key:
