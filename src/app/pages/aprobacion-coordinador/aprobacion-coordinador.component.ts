@@ -7,9 +7,6 @@ import { UserService } from '../services/userService';
 import { UtilService } from '../services/utilService';
 import Swal from 'sweetalert2';
 
-import { forkJoin, of } from 'rxjs';
-import { catchError, map, timeout } from 'rxjs/operators';
-
 import { ModalDocumentViewerComponent } from '../modal-document-viewer/modal-document-viewer.component';
 import { Respuesta } from 'src/app/@core/models/respuesta';
 
@@ -36,7 +33,7 @@ export class AprobacionCoordinadorComponent implements OnInit {
 
   proyectoSeleccionado: number | null = null;
   vigencia: number | null = null;
-  mes: number | null = null;   // num 1-12
+  mes: number | null = null;
   anio: number | null = null;
 
   Meses = [
@@ -47,7 +44,7 @@ export class AprobacionCoordinadorComponent implements OnInit {
   Periodos: any[] = [];
 
   ProyectoCurricularSeleccionado: any = null;
-  MesSeleccionado: any = null;      // string mes
+  MesSeleccionado: any = null;
   AnoSeleccionado: any = null;
   PeriodoSeleccionado: any = null;
   Vigencias: number[] = [];
@@ -61,18 +58,29 @@ export class AprobacionCoordinadorComponent implements OnInit {
     actions: false,
     selectMode: 'single',
     columns: {
-      NumeroContrato: { title: 'Contrato', type: 'string' },
+      NumeroResolucion: {
+        title: 'Resolución',
+        type: 'string',
+        valuePrepareFunction: (value: any) => value || '—'
+      },
       NombreDocente: {
         title: 'Docente',
         type: 'string',
-        valuePrepareFunction: (_c, r) => r?.NombreDocente || '—'
+        valuePrepareFunction: (_c: any, r: any) => r?.NombreDocente || '—'
       },
-      PersonaId: { title: 'Documento', type: 'number' },
-      Vigencia: { title: 'Vigencia', type: 'number' },
+      PersonaId: {
+        title: 'Documento',
+        type: 'number'
+      },
+      Vigencia: {
+        title: 'Vigencia',
+        type: 'number'
+      },
       'ResolucionVinculacionDocenteId.Dedicacion': {
         title: 'Dedicación',
         type: 'string',
-        valuePrepareFunction: (_c, r) => r?.ResolucionVinculacionDocenteId?.Dedicacion || ''
+        valuePrepareFunction: (_c: any, r: any) =>
+          r?.ResolucionVinculacionDocenteId?.Dedicacion || ''
       }
     }
   };
@@ -81,18 +89,29 @@ export class AprobacionCoordinadorComponent implements OnInit {
     selectMode: 'multi',
     actions: false,
     columns: {
-      NumeroContrato: { title: 'Contrato', type: 'string' },
+      NumeroResolucion: {
+        title: 'Resolución',
+        type: 'string',
+        valuePrepareFunction: (value: any) => value || '—'
+      },
       NombreDocente: {
         title: 'Docente',
         type: 'string',
-        valuePrepareFunction: (_c, r) => r?.NombreDocente || '—'
+        valuePrepareFunction: (_c: any, r: any) => r?.NombreDocente || '—'
       },
-      PersonaId: { title: 'Documento', type: 'number' },
-      Vigencia: { title: 'Vigencia', type: 'number' },
+      PersonaId: {
+        title: 'Documento',
+        type: 'number'
+      },
+      Vigencia: {
+        title: 'Vigencia',
+        type: 'number'
+      },
       'ResolucionVinculacionDocenteId.Dedicacion': {
         title: 'Dedicación',
         type: 'string',
-        valuePrepareFunction: (_c, r) => r?.ResolucionVinculacionDocenteId?.Dedicacion || ''
+        valuePrepareFunction: (_c: any, r: any) =>
+          r?.ResolucionVinculacionDocenteId?.Dedicacion || ''
       }
     }
   };
@@ -115,11 +134,9 @@ export class AprobacionCoordinadorComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     const currentYear = new Date().getFullYear();
 
-    // Vigencias (ej: últimos 6)
     this.Vigencias = Array.from({ length: 6 }, (_, i) => currentYear - i);
-
-    // Años docentes (igual)
     this.AnosDocentes = Array.from({ length: 6 }, (_, i) => currentYear - i);
+
     await this.consultarNumeroDocumento();
     await this.consultarCoordinador();
   }
@@ -141,6 +158,7 @@ export class AprobacionCoordinadorComponent implements OnInit {
       });
     });
   }
+
   async consultarCoordinador() {
     return new Promise((resolve) => {
       this.request.get(
@@ -162,7 +180,6 @@ export class AprobacionCoordinadorComponent implements OnInit {
   }
 
   async consultarDocentes() {
-
     if (!this.proyectoSeleccionado || !this.vigencia || !this.mes || !this.anio) {
       Swal.fire('Error', 'Debe seleccionar todos los filtros', 'warning');
       return;
@@ -177,7 +194,6 @@ export class AprobacionCoordinadorComponent implements OnInit {
     this.request.get(environment.CUMPLIDOS_DVE_MID_SERVICE, endpoint)
       .subscribe({
         next: async (response: any) => {
-
           const dataRaw = response?.Data || [];
           const data = Array.isArray(dataRaw) ? dataRaw : [];
 
@@ -202,31 +218,26 @@ export class AprobacionCoordinadorComponent implements OnInit {
   }
 
   private async enriquecerNombresDocentesAsync(docentes: any[]) {
-
     const docsUnicos = Array.from(new Set(
       (docentes || []).map(d => String(d.PersonaId)).filter(Boolean)
     ));
 
-    for (let doc of docsUnicos) {
-
+    for (const doc of docsUnicos) {
       if (this.nombreCache.has(doc)) {
         continue;
       }
 
       await new Promise<void>((resolve) => {
-
         this.request.get(
           environment.ADMINISTRATIVA_AMAZON_SERVICE,
           `informacion_proveedor?query=NumDocumento:${doc}&limit=0`
         ).subscribe({
           next: (response: any) => {
-
             if (response && response.length > 0) {
               this.nombreCache.set(doc, response[0].NomProveedor);
             } else {
               this.nombreCache.set(doc, '');
             }
-
             resolve();
           },
           error: () => {
@@ -234,10 +245,9 @@ export class AprobacionCoordinadorComponent implements OnInit {
             resolve();
           }
         });
-
       });
-
     }
+
     this.actualizarTablasConNombres(docentes);
   }
 
@@ -285,7 +295,9 @@ export class AprobacionCoordinadorComponent implements OnInit {
       `Se aprobarán ${payload.docentes.length} docentes`,
       'send'
     ).then(result => {
-      if (!result.isConfirmed) return;
+      if (!result.isConfirmed) {
+        return;
+      }
 
       this.popUp.loading();
 
